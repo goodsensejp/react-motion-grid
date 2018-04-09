@@ -2,6 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types';
 import Waypoint from 'react-waypoint';
 import { StaggeredMotion, spring, presets } from 'react-motion';
+import Measure from 'react-measure';
 import styled from 'styled-components';
 import keys from 'lodash/keys';
 import bottomFadeIn from './BottomFadeInAnimation';
@@ -129,6 +130,11 @@ export default class MotionGrid extends React.Component {
      * This is used to pervent flickers when the data is loaded in a very short time
      */
     minimumPlaceholdersTime: PropTypes.number,
+
+    /**
+     * Width of the the grid, if not given, width will be calcuated by react-measure
+     */
+    containerWidth: PropTypes.number,
   };
 
   static defaultProps = {
@@ -224,7 +230,7 @@ export default class MotionGrid extends React.Component {
     return opacity > 0.1;
   }
 
-  renderRows({ rows, animation, innerPadding, styles, isPlaceholders = false }) {
+  renderRows({ rows, animation, innerPadding, styles, containerWidth, isPlaceholders = false }) {
     let k = 0;
 
     // @todo remove this when react-motion implements onRest for StaggeredMotion...
@@ -236,6 +242,7 @@ export default class MotionGrid extends React.Component {
     return rows.map((columns, i, rows) => {
       const horizontalPadding = getHorizontalPadding(innerPadding);
       const verticalPadding = getVerticalPadding(innerPadding);
+      const remainingWidth = containerWidth - columns.length * horizontalPadding;
       return (
         <div key={i} style={{ overflow: 'hidden' }}>
           <Row
@@ -247,10 +254,9 @@ export default class MotionGrid extends React.Component {
               const columnStyle = styles[k++] || {};
               const isFirstOne = j === 0;
               const isLastOne = (12 / column.width) === j + 1;
-
+              const width = remainingWidth * column.width / 12;
               const left = ((horizontalPadding)/2);
               const right = ((horizontalPadding)/2);
-
               const top = ((verticalPadding)/2);
               const bottom = ((verticalPadding)/2);
 
@@ -261,7 +267,9 @@ export default class MotionGrid extends React.Component {
                     width={column.width}
                     key={j}
                   >
-                    {animation ? animation.getWrapper(column.element, columnStyle) : column.element}
+                    {animation ?
+                        animation.getWrapper(column.element, columnStyle) :
+                        React.cloneElement(column.element, { width })}
                   </Column>
                 );
               }
@@ -281,6 +289,7 @@ export default class MotionGrid extends React.Component {
     startAnimate,
     springOptions,
     innerPadding,
+    containerWidth,
   }, index) {
     const rows = this.getRows(patch, columns);
 
@@ -298,6 +307,7 @@ export default class MotionGrid extends React.Component {
               opacity: 1,
               translateX: 0,
             }),
+            containerWidth,
           })}
         </PatchWrapper>
       );
@@ -422,6 +432,7 @@ export default class MotionGrid extends React.Component {
       animationType,
       minimumPlaceholdersTime,
       children,
+      containerWidth,
       ...props,
     } = this.props;
 
@@ -439,12 +450,25 @@ export default class MotionGrid extends React.Component {
     }
 
     const animation = new animations[animationType];
-
+    if (containerWidth) {
+      return (
+        <div {...props}>
+          {this.renderPatches({ patches, animation, columns, startAnimate, springOptions, innerPadding, containerWidth })}
+          {this.renderPagingBehaviour({ enablePaging, pagingOptions, isLoadBtnClicked, animationOnRest })}
+        </div>
+      );
+    }
     return (
-      <div {...props}>
-        {this.renderPatches({ patches, animation, columns, startAnimate, springOptions, innerPadding })}
-        {this.renderPagingBehaviour({ enablePaging, pagingOptions, isLoadBtnClicked, animationOnRest })}
-      </div>
+      <Measure whitelist={['width']}>
+        {
+          ({ width }) => (
+            <div {...props}>
+              {this.renderPatches({ patches, animation, columns, startAnimate, springOptions, innerPadding, containerWidth: width })}
+              {this.renderPagingBehaviour({ enablePaging, pagingOptions, isLoadBtnClicked, animationOnRest })}
+            </div>
+          )
+        } 
+      </Measure>
     );
   }
 }
