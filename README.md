@@ -44,6 +44,7 @@ Usage
 | placeholderRows | number | 3 | Number of placeholder rows to show before data is loaded |
 | placeholderItem | element |  | React element to render for the placeholder |
 | minimumPlaceholdersTime | number | 0 | Minimum millis to wait before hiding placeholder even if the data was loaded.<br />This is used to pervent flickers when the data is loaded in a very short time |
+| containerWidth | number |  | Width of the the grid, if not given, width will be calcuated by react-measure |
 
 Contributing
 --------------
